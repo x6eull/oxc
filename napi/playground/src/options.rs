@@ -1,121 +1,79 @@
-use serde::Deserialize;
-use tsify::Tsify;
-use wasm_bindgen::prelude::*;
+use napi_derive::napi;
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcOptions {
-    #[tsify(optional)]
     pub run: Option<OxcRunOptions>,
-    #[tsify(optional)]
     pub parser: Option<OxcParserOptions>,
-    #[tsify(optional)]
     pub linter: Option<OxcLinterOptions>,
-    #[tsify(optional)]
     pub transformer: Option<OxcTransformerOptions>,
-    #[tsify(optional)]
     pub codegen: Option<OxcCodegenOptions>,
-    #[tsify(optional)]
     pub minifier: Option<OxcMinifierOptions>,
-    #[tsify(optional)]
     pub control_flow: Option<OxcControlFlowOptions>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcRunOptions {
-    #[tsify(optional)]
     pub syntax: Option<bool>,
-    #[tsify(optional)]
     pub lint: Option<bool>,
-    #[tsify(optional)]
     pub format: Option<bool>,
-    #[tsify(optional)]
     pub prettier_format: Option<bool>,
-    #[tsify(optional)]
     pub prettier_ir: Option<bool>,
-    #[tsify(optional)]
     pub transform: Option<bool>,
-    #[tsify(optional)]
     pub type_check: Option<bool>,
-    #[tsify(optional)]
     pub scope: Option<bool>,
-    #[tsify(optional)]
     pub symbol: Option<bool>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcParserOptions {
-    #[tsify(optional)]
     pub allow_return_outside_function: Option<bool>,
-    #[tsify(optional)]
     pub preserve_parens: Option<bool>,
-    #[tsify(optional)]
     pub allow_v8_intrinsics: Option<bool>,
-    #[tsify(optional, type = "\"script\" | \"module\"")]
     pub source_type: Option<String>,
-    #[tsify(optional)]
     pub source_filename: Option<String>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 // allow empty object for future compatibility
 #[expect(clippy::empty_structs_with_brackets)]
 pub struct OxcLinterOptions {}
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcTransformerOptions {
-    #[tsify(optional)]
     pub target: Option<String>,
-
-    #[tsify(optional)]
     pub isolated_declarations: Option<bool>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcCodegenOptions {
-    #[tsify(optional)]
     pub indentation: Option<u8>,
-    #[tsify(optional)]
     pub enable_typescript: Option<bool>,
-    #[tsify(optional)]
     pub enable_sourcemap: Option<bool>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcControlFlowOptions {
-    #[tsify(optional)]
     pub verbose: Option<bool>,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
-#[serde(rename_all = "camelCase")]
+#[napi(object)]
+#[derive(Debug, Default, Clone)]
 pub struct OxcMinifierOptions {
-    #[tsify(optional)]
     pub whitespace: Option<bool>,
-    #[tsify(optional)]
     pub mangle: Option<bool>,
-    #[tsify(optional)]
     pub compress: Option<bool>,
-    #[tsify(optional)]
     pub compress_options: Option<OxcCompressOptions>,
 }
 
-#[derive(Debug, Clone, Deserialize, Tsify)]
-#[tsify(from_wasm_abi)]
+#[napi(object)]
+#[derive(Debug, Clone)]
 pub struct OxcCompressOptions {
     pub booleans: bool,
     pub drop_debugger: bool,

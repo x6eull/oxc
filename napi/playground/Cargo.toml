@@ -1,5 +1,5 @@
 [package]
-name = "oxc_wasm"
+name = "playground"
 version = "0.0.0"
 authors.workspace = true
 categories.workspace = true
@@ -19,14 +19,15 @@ test = false
 doctest = false
 
 [dependencies]
-oxc = { workspace = true, features = ["ast_visit", "codegen", "minifier", "semantic", "serialize", "transformer", "isolated_declarations", "wasm"] }
+oxc = { workspace = true, features = ["ast_visit", "codegen", "minifier", "semantic", "serialize", "transformer", "isolated_declarations"] }
+oxc_napi = { workspace = true }
 
 oxc_index = { workspace = true }
 oxc_linter = { workspace = true }
 oxc_prettier = { workspace = true }
 
-console_error_panic_hook = { workspace = true }
-serde = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
-tsify = { workspace = true }
-wasm-bindgen = { workspace = true }
+napi = { workspace = true }
+napi-derive = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }

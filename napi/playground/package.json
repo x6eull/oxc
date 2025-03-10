@@ -1,0 +1,28 @@
+{
+  "name": "@oxc/playground",
+  "private": true,
+  "version": "0.0.0",
+  "browser": "playground.wasi-browser.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "build-dev": "napi build --platform --no-dts-cache --strip --target wasm32-wasip1-threads",
+    "build": "pnpm run build-dev --release"
+  },
+  "dependencies": {
+    "@oxc-project/types": "workspace:^"
+  },
+  "napi": {
+    "binaryName": "playground",
+    "targets": [
+      "wasm32-wasip1-threads"
+    ],
+    "wasm": {
+      "browser": {
+        "fs": false
+      }
+    }
+  },
+  "devDependencies": {
+    "@napi-rs/wasm-runtime": "^0.2.7"
+  }
+}
