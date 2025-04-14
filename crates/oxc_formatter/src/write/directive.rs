@@ -1,11 +1,12 @@
 use oxc_allocator::Vec;
 use oxc_ast::ast::*;
 
-use super::FormatWrite;
 use crate::{
     formatter::{Buffer, FormatResult, Formatter, prelude::*},
     write,
 };
+
+use super::FormatWrite;
 
 impl<'a> Format<'a> for Vec<'a, Directive<'a>> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {

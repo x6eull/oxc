@@ -46,12 +46,6 @@ pub const IGNORE_TESTS: &[&str] = &[
     "js/no-semi-babylon-extensions/no-semi.js",
     // Experimental syntax: `let { #x: x } = ...`
     "js/destructuring-private-fields",
-    // Experimental syntax: `import defer`
-    "js/deferred-import-evaluation/",
-    // Experimental syntax: `import source`
-    "js/source-phase-imports/",
-    "js/dynamic-import/import-phase.js",
-    "js/dynamic-import/template-literal.js",
     // Experimental syntax: `import module`
     "js/import-reflection/",
     // Experimental syntax: `throw` expressions
@@ -87,10 +81,8 @@ pub const IGNORE_TESTS: &[&str] = &[
     "tuple-and-record.js",
     "js/async-do-expressions",
     "js/babel-plugins",
-    "js/decorator",
     "js/destructuring-private-fields",
     "js/do", // do expression
-    "js/explicit-resource-management",
     "js/export-default/escaped",
     "js/export-default/export-default-from",
     "js/import-reflection",

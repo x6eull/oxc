@@ -18,7 +18,7 @@
 #![allow(rustdoc::broken_intra_doc_links)]
 
 mod arguments;
-mod buffer;
+pub mod buffer;
 mod builders;
 pub mod comments;
 mod context;

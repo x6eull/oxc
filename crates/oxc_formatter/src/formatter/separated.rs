@@ -1,4 +1,5 @@
-use oxc_span::Span;
+use oxc_allocator::Vec;
+use oxc_span::{SPAN, Span};
 
 use crate::{
     formatter::{
@@ -30,9 +31,9 @@ impl<'a, E: Format<'a>> Format<'a> for FormatSeparatedElement<E> {
         }
         if self.is_last {
             match self.options.trailing_separator {
-                TrailingSeparator::Allowed => format_only_if_breaks(&SyntaxToken, &self.separator)
-                    .with_group_id(self.options.group_id)
-                    .fmt(f),
+                TrailingSeparator::Allowed => {
+                    if_group_breaks(&self.separator).with_group_id(self.options.group_id).fmt(f)
+                }
                 TrailingSeparator::Mandatory => self.separator.fmt(f),
                 TrailingSeparator::Disallowed | TrailingSeparator::Omit => Ok(()),
             }
@@ -51,7 +52,10 @@ pub struct FormatSeparatedIter<I, E> {
     options: FormatSeparatedOptions,
 }
 
-impl<I, E> FormatSeparatedIter<I, E> {
+impl<I, E> FormatSeparatedIter<I, E>
+where
+    I: Iterator<Item = E>,
+{
     pub fn new(inner: I, separator: &'static str) -> Self {
         Self { inner, separator, next: None, options: FormatSeparatedOptions::default() }
     }

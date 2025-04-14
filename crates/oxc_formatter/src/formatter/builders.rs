@@ -1723,8 +1723,8 @@ pub fn group<'ast>(content: &impl Format<'ast>) -> Group<'_, 'ast> {
 }
 
 #[derive(Copy, Clone)]
-pub struct Group<'a, 'ast> {
-    content: Argument<'a, 'ast>,
+pub struct Group<'fmt, 'ast> {
+    content: Argument<'fmt, 'ast>,
     group_id: Option<GroupId>,
     should_expand: bool,
 }
@@ -2050,7 +2050,7 @@ impl<'ast> Format<'ast> for IfGroupBreaks<'_, 'ast> {
         f.write_element(FormatElement::Tag(StartConditionalContent(
             Condition::new(self.mode).with_group_id(self.group_id),
         )))?;
-        Arguments::from(&self.content).fmt(f)?;
+        self.content.fmt(f)?;
         f.write_element(FormatElement::Tag(EndConditionalContent))
     }
 }
@@ -2317,24 +2317,23 @@ where
 /// // Formatting the value more than once panics
 /// format!(SimpleFormatContext::default(), [value]);
 /// ```
-pub const fn format_once<T>(formatter: T) -> FormatOnce<T>
+pub const fn format_once<'ast, T>(formatter: T) -> FormatOnce<T>
 where
-    T: FnOnce(&mut Formatter) -> FormatResult<()>,
+    T: FnOnce(&mut Formatter<'_, 'ast>) -> FormatResult<()>,
 {
-    FormatOnce { formatter: Cell::new(Some(formatter)), context: PhantomData }
+    FormatOnce { formatter: Cell::new(Some(formatter)) }
 }
 
 pub struct FormatOnce<T> {
     formatter: Cell<Option<T>>,
-    context: PhantomData<T>,
 }
 
-impl<T> Format<'_> for FormatOnce<T>
+impl<'ast, T> Format<'ast> for FormatOnce<T>
 where
-    T: FnOnce(&mut Formatter) -> FormatResult<()>,
+    T: FnOnce(&mut Formatter<'_, 'ast>) -> FormatResult<()>,
 {
     #[inline(always)]
-    fn fmt(&self, f: &mut Formatter) -> FormatResult<()> {
+    fn fmt(&self, f: &mut Formatter<'_, 'ast>) -> FormatResult<()> {
         let formatter = self.formatter.take().expect("Tried to format a `format_once` at least twice. This is not allowed. You may want to use `format_with` or `format.memoized` instead.");
 
         (formatter)(f)
@@ -2477,6 +2476,14 @@ where
         source_text[..start as usize].chars().rev().take_while(|c| is_line_terminator(*c)).count()
             > 1
     }
+}
+
+/// Get the number of line breaks between two consecutive SyntaxNodes in the tree
+pub fn get_lines_before(span: Span) -> usize {
+    // TODO:
+    // Count the newlines in the leading trivia of the next node
+    // if let Some(token) = next_node.first_token() { get_lines_before_token(&token) } else { 0 }
+    0
 }
 
 /// Builder to fill as many elements as possible on a single line.
