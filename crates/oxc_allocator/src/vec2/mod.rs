@@ -2279,7 +2279,6 @@ impl<'a, 'bump, T> IntoIterator for &'a mut Vec<'bump, T> {
 }
 
 impl<'bump, T: 'bump> Extend<T> for Vec<'bump, T> {
-    #[inline]
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
         // This is the case for a general iterator.
         //
