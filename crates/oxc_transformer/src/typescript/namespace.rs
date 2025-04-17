@@ -107,7 +107,7 @@ impl<'a> TypeScriptNamespace<'a, '_> {
             return;
         }
 
-        let Some(body) = body else {
+        let Some(block) = body else {
             return;
         };
 
@@ -118,28 +118,28 @@ impl<'a> TypeScriptNamespace<'a, '_> {
         let uid_binding =
             ctx.generate_uid(&binding.name, scope_id, SymbolFlags::FunctionScopedVariable);
 
-        let directives;
-        let namespace_top_level;
+        // let directives;
+        // let namespace_top_level;
 
-        match body {
-            TSModuleDeclarationBody::TSModuleBlock(block) => {
-                let block = block.unbox();
-                directives = block.directives;
-                namespace_top_level = block.body;
-            }
-            // We handle `namespace X.Y {}` as if it was
-            //   namespace X {
-            //     export namespace Y {}
-            //   }
-            TSModuleDeclarationBody::TSModuleDeclaration(declaration) => {
-                let declaration = Declaration::TSModuleDeclaration(declaration);
-                let export_named_decl =
-                    ctx.ast.plain_export_named_declaration_declaration(SPAN, declaration);
-                let stmt = Statement::ExportNamedDeclaration(export_named_decl);
-                directives = ctx.ast.vec();
-                namespace_top_level = ctx.ast.vec1(stmt);
-            }
-        }
+        // match body {
+        // TSModuleDeclarationBody::TSModuleBlock(block) => {
+        let block = block.unbox();
+        let directives = block.directives;
+        let namespace_top_level = block.body;
+        // }
+        // // We handle `namespace X.Y {}` as if it was
+        // //   namespace X {
+        // //     export namespace Y {}
+        // //   }
+        // TSModuleDeclarationBody::TSModuleDeclaration(declaration) => {
+        // let declaration = Declaration::TSModuleDeclaration(declaration);
+        // let export_named_decl =
+        // ctx.ast.plain_export_named_declaration_declaration(SPAN, declaration);
+        // let stmt = Statement::ExportNamedDeclaration(export_named_decl);
+        // directives = ctx.ast.vec();
+        // namespace_top_level = ctx.ast.vec1(stmt);
+        // }
+        // }
 
         let mut new_stmts = ctx.ast.vec();
 

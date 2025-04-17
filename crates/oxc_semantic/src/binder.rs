@@ -465,32 +465,27 @@ fn get_module_instance_state_impl<'a, 'b>(
         return *state;
     }
 
-    let Some(body) = &decl.body else {
+    let Some(block) = &decl.body else {
         // For modules without a block, we consider them instantiated
         return ModuleInstanceState::Instantiated;
     };
 
     // A module is uninstantiated if it contains only specific declarations
-    let state = match body {
-        TSModuleDeclarationBody::TSModuleBlock(block) => {
-            let mut child_state = ModuleInstanceState::NonInstantiated;
-            for stmt in &block.body {
-                module_declaration_stmts.extend(block.body.iter());
-                child_state = get_module_instance_state_for_statement(
-                    builder,
-                    stmt,
-                    current_node_id,
-                    module_declaration_stmts,
-                );
-                if child_state.is_instantiated() {
-                    break;
-                }
+    let state = {
+        let mut child_state = ModuleInstanceState::NonInstantiated;
+        for stmt in &block.body {
+            module_declaration_stmts.extend(block.body.iter());
+            child_state = get_module_instance_state_for_statement(
+                builder,
+                stmt,
+                current_node_id,
+                module_declaration_stmts,
+            );
+            if child_state.is_instantiated() {
+                break;
             }
-            child_state
         }
-        TSModuleDeclarationBody::TSModuleDeclaration(module) => {
-            get_module_instance_state(builder, module, current_node_id)
-        }
+        child_state
     };
 
     builder.module_instance_state_cache.insert(address, state);

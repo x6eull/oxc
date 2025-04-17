@@ -208,10 +208,8 @@ impl<'a> IsolatedDeclarations<'a> {
                             let mut decl = decl.clone_in(self.ast.allocator);
                             // Remove export keyword from all statements in `declare module "xxx" { ... }`
                             if !is_global {
-                                if let Some(body) =
-                                    decl.body.as_mut().and_then(|body| body.as_module_block_mut())
-                                {
-                                    self.strip_export_keyword(&mut body.body);
+                                if let Some(block) = &mut decl.body {
+                                    self.strip_export_keyword(&mut block.body);
                                 }
                             }
 
@@ -516,7 +514,7 @@ impl<'a> IsolatedDeclarations<'a> {
                 continue;
             }
             let TSModuleDeclarationName::Identifier(ident) = &decl.id else { continue };
-            let Some(TSModuleDeclarationBody::TSModuleBlock(block)) = &decl.body else {
+            let Some(block) = &decl.body else {
                 continue;
             };
             for stmt in &block.body {

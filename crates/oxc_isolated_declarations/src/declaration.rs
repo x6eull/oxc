@@ -123,32 +123,18 @@ impl<'a> IsolatedDeclarations<'a> {
             return decl.clone_in(self.ast.allocator);
         }
 
-        let Some(body) = &decl.body else {
+        let Some(block) = &decl.body else {
             return decl.clone_in(self.ast.allocator);
         };
 
-        match body {
-            TSModuleDeclarationBody::TSModuleDeclaration(decl) => {
-                let inner = self.transform_ts_module_declaration(decl);
-                self.ast.alloc_ts_module_declaration(
-                    decl.span,
-                    decl.id.clone_in(self.ast.allocator),
-                    Some(TSModuleDeclarationBody::TSModuleDeclaration(inner)),
-                    decl.kind,
-                    self.is_declare(),
-                )
-            }
-            TSModuleDeclarationBody::TSModuleBlock(block) => {
-                let body = self.transform_ts_module_block(block);
-                self.ast.alloc_ts_module_declaration(
-                    decl.span,
-                    decl.id.clone_in(self.ast.allocator),
-                    Some(TSModuleDeclarationBody::TSModuleBlock(body)),
-                    decl.kind,
-                    self.is_declare(),
-                )
-            }
-        }
+        let block = self.transform_ts_module_block(block);
+        self.ast.alloc_ts_module_declaration(
+            decl.span,
+            decl.id.clone_in(self.ast.allocator),
+            Some(block),
+            decl.kind,
+            self.is_declare(),
+        )
     }
 
     pub(crate) fn transform_declaration(

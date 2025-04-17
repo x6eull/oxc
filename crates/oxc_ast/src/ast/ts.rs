@@ -1167,7 +1167,7 @@ pub enum TSTypePredicateName<'a> {
 #[ast(visit)]
 #[scope(
     flags = ScopeFlags::TsModuleBlock,
-    strict_if = self.body.as_ref().is_some_and(TSModuleDeclarationBody::has_use_strict_directive),
+    strict_if = self.body.as_ref().is_some_and(|body| body.has_use_strict_directive()),
 )]
 #[derive(Debug)]
 #[generate_derive(CloneIn, Dummy, TakeIn, GetSpan, GetSpanMut, ContentEq, ESTree)]

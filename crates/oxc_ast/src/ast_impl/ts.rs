@@ -193,7 +193,7 @@ impl TSModuleDeclarationKind {
     }
 }
 
-impl<'a> TSModuleDeclarationName<'a> {
+impl TSModuleDeclarationName<'_> {
     /// Returns `true` if this name is a string literal.
     ///
     /// ## Example

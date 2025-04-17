@@ -3623,25 +3623,8 @@ impl Gen for TSModuleDeclaration<'_> {
         }
 
         if let Some(body) = &self.body {
-            let mut body = body;
-            loop {
-                match body {
-                    TSModuleDeclarationBody::TSModuleDeclaration(b) => {
-                        p.print_ascii_byte(b'.');
-                        b.id.print(p, ctx);
-                        if let Some(b) = &b.body {
-                            body = b;
-                        } else {
-                            break;
-                        }
-                    }
-                    TSModuleDeclarationBody::TSModuleBlock(body) => {
-                        p.print_soft_space();
-                        body.print(p, ctx);
-                        break;
-                    }
-                }
-            }
+            p.print_soft_space();
+            body.print(p, ctx);
         } else {
             p.print_semicolon();
         }
@@ -3654,6 +3637,7 @@ impl Gen for TSModuleDeclarationName<'_> {
         match self {
             Self::Identifier(ident) => ident.print(p, ctx),
             Self::StringLiteral(s) => p.print_string_literal(s, false),
+            Self::TSQualifiedName(s) => s.print(p, ctx),
         }
     }
 }

@@ -1324,41 +1324,39 @@ rebuilt        : ScopeId(0): []
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head/input.ts
 semantic error: Ambient modules cannot be nested in other modules or namespaces.
+Ambient modules cannot be nested in other modules or namespaces.
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head-babel-7/input.ts
 semantic error: Ambient modules cannot be nested in other modules or namespaces.
+Ambient modules cannot be nested in other modules or namespaces.
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head-declare/input.ts
 semantic error: Bindings mismatch:
-after transform: ScopeId(0): ["M", "N"]
+after transform: ScopeId(0): ["M"]
 rebuilt        : ScopeId(0): []
 Scope children mismatch:
-after transform: ScopeId(0): [ScopeId(1), ScopeId(3), ScopeId(4), ScopeId(5)]
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3), ScopeId(4)]
 rebuilt        : ScopeId(0): []
+Unresolved references mismatch:
+after transform: ["N"]
+rebuilt        : []
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head-declare-babel-7/input.ts
 semantic error: Bindings mismatch:
-after transform: ScopeId(0): ["M", "N"]
+after transform: ScopeId(0): ["M"]
 rebuilt        : ScopeId(0): []
 Scope children mismatch:
-after transform: ScopeId(0): [ScopeId(1), ScopeId(3), ScopeId(4), ScopeId(5)]
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3), ScopeId(4)]
 rebuilt        : ScopeId(0): []
+Unresolved references mismatch:
+after transform: ["N"]
+rebuilt        : []
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head-export/input.ts
-semantic error: Bindings mismatch:
-after transform: ScopeId(0): ["X"]
-rebuilt        : ScopeId(0): []
-Scope children mismatch:
-after transform: ScopeId(0): [ScopeId(1), ScopeId(3)]
-rebuilt        : ScopeId(0): []
+semantic error: Ambient modules cannot be nested in other modules or namespaces.
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/module-namespace/head-export-babel-7/input.ts
-semantic error: Bindings mismatch:
-after transform: ScopeId(0): ["X"]
-rebuilt        : ScopeId(0): []
-Scope children mismatch:
-after transform: ScopeId(0): [ScopeId(1), ScopeId(3)]
-rebuilt        : ScopeId(0): []
+semantic error: Ambient modules cannot be nested in other modules or namespaces.
 
 tasks/coverage/babel/packages/babel-parser/test/fixtures/typescript/regression/destructuring-in-function-type/input.ts
 semantic error: Scope children mismatch:

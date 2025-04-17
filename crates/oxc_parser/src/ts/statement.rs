@@ -292,22 +292,33 @@ impl<'a> ParserImpl<'a> {
             ModifierFlags::DECLARE | ModifierFlags::EXPORT,
             diagnostics::modifier_cannot_be_used_here,
         );
+
         let id = match self.cur_kind() {
             Kind::Str => self.parse_literal_string().map(TSModuleDeclarationName::StringLiteral),
+            Kind::Ident if self.peek_at(Kind::Dot) => {
+                self.parse_ts_qualifed_name().map(TSModuleDeclarationName::TSQualifiedName)
+            }
             _ => self.parse_binding_identifier().map(TSModuleDeclarationName::Identifier),
         }?;
 
-        let body = if self.eat(Kind::Dot) {
-            let span = self.start_span();
-            let decl = self.parse_ts_namespace_or_module_declaration_body(
-                span,
-                kind,
-                &Modifiers::empty(),
-            )?;
-            Some(TSModuleDeclarationBody::TSModuleDeclaration(decl))
-        } else if self.at(Kind::LCurly) {
-            let block = self.parse_ts_module_block()?;
-            Some(TSModuleDeclarationBody::TSModuleBlock(block))
+        // let body = if self.eat(Kind::Dot) {
+        // let span = self.start_span();
+        // let decl = self.parse_ts_namespace_or_module_declaration_body(
+        // span,
+        // kind,
+        // &Modifiers::empty(),
+        // )?;
+        // Some(TSModuleDeclarationBody::TSModuleDeclaration(decl))
+        // } else if self.at(Kind::LCurly) {
+        // let block = self.parse_ts_module_block()?;
+        // Some(TSModuleDeclarationBody::TSModuleBlock(block))
+        // } else {
+        // self.asi()?;
+        // None
+        // };
+
+        let body = if self.at(Kind::LCurly) {
+            Some(self.parse_ts_module_block()?)
         } else {
             self.asi()?;
             None
@@ -326,6 +337,25 @@ impl<'a> ParserImpl<'a> {
             kind,
             modifiers.contains_declare(),
         ))
+    }
+
+    fn parse_ts_qualifed_name(&mut self) -> Result<TSQualifiedName<'a>> {
+        let span = self.start_span();
+        let ident = self.parse_identifier_name()?;
+        let left = self.ast.alloc_identifier_reference(ident.span, ident.name);
+        let left = TSTypeName::IdentifierReference(left);
+        self.expect(Kind::Dot)?;
+        let right = self.parse_identifier_name()?;
+        let mut name = self.ast.ts_qualified_name(self.end_span(span), left, right);
+        while self.eat(Kind::Dot) {
+            let right = self.parse_identifier_name()?;
+            name = self.ast.ts_qualified_name(
+                self.end_span(span),
+                TSTypeName::QualifiedName(self.ast.alloc(name)),
+                right,
+            );
+        }
+        Ok(name)
     }
 
     /* ----------------------- declare --------------------- */
