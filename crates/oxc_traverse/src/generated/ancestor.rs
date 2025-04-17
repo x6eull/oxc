@@ -2176,11 +2176,6 @@ impl<'a, 't> Ancestor<'a, 't> {
     }
 
     #[inline]
-    pub fn is_parent_of_ts_module_declaration_body(self) -> bool {
-        matches!(self, Self::TSModuleDeclarationBody(_))
-    }
-
-    #[inline]
     pub fn is_parent_of_ts_type_query_expr_name(self) -> bool {
         matches!(self, Self::TSTypeQueryExprName(_))
     }
@@ -13937,10 +13932,10 @@ impl<'a, 't> TSModuleDeclarationWithoutId<'a, 't> {
     }
 
     #[inline]
-    pub fn body(self) -> &'t Option<TSModuleDeclarationBody<'a>> {
+    pub fn body(self) -> &'t Option<Box<'a, TSModuleBlock<'a>>> {
         unsafe {
             &*((self.0 as *const u8).add(OFFSET_TS_MODULE_DECLARATION_BODY)
-                as *const Option<TSModuleDeclarationBody<'a>>)
+                as *const Option<Box<'a, TSModuleBlock<'a>>>)
         }
     }
 

@@ -1966,15 +1966,7 @@ impl GetSpan for TSModuleDeclarationName<'_> {
         match self {
             Self::Identifier(it) => GetSpan::span(it),
             Self::StringLiteral(it) => GetSpan::span(it),
-        }
-    }
-}
-
-impl GetSpan for TSModuleDeclarationBody<'_> {
-    fn span(&self) -> Span {
-        match self {
-            Self::TSModuleDeclaration(it) => GetSpan::span(&**it),
-            Self::TSModuleBlock(it) => GetSpan::span(&**it),
+            Self::TSQualifiedName(it) => GetSpan::span(it),
         }
     }
 }

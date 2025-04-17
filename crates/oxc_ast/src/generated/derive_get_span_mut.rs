@@ -1966,15 +1966,7 @@ impl GetSpanMut for TSModuleDeclarationName<'_> {
         match self {
             Self::Identifier(it) => GetSpanMut::span_mut(it),
             Self::StringLiteral(it) => GetSpanMut::span_mut(it),
-        }
-    }
-}
-
-impl GetSpanMut for TSModuleDeclarationBody<'_> {
-    fn span_mut(&mut self) -> &mut Span {
-        match self {
-            Self::TSModuleDeclaration(it) => GetSpanMut::span_mut(&mut **it),
-            Self::TSModuleBlock(it) => GetSpanMut::span_mut(&mut **it),
+            Self::TSQualifiedName(it) => GetSpanMut::span_mut(it),
         }
     }
 }

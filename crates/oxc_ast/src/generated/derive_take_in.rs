@@ -420,8 +420,6 @@ impl<'a> TakeIn<'a> for TSModuleDeclaration<'a> {}
 
 impl<'a> TakeIn<'a> for TSModuleDeclarationName<'a> {}
 
-impl<'a> TakeIn<'a> for TSModuleDeclarationBody<'a> {}
-
 impl<'a> TakeIn<'a> for TSModuleBlock<'a> {}
 
 impl<'a> TakeIn<'a> for TSTypeLiteral<'a> {}

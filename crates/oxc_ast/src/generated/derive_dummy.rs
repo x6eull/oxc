@@ -2547,15 +2547,6 @@ impl<'a> Dummy<'a> for TSModuleDeclarationName<'a> {
     }
 }
 
-impl<'a> Dummy<'a> for TSModuleDeclarationBody<'a> {
-    /// Create a dummy [`TSModuleDeclarationBody`].
-    ///
-    /// Has cost of making 1 allocation (72 bytes).
-    fn dummy(allocator: &'a Allocator) -> Self {
-        Self::TSModuleBlock(Dummy::dummy(allocator))
-    }
-}
-
 impl<'a> Dummy<'a> for TSModuleBlock<'a> {
     /// Create a dummy [`TSModuleBlock`].
     ///

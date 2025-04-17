@@ -2253,16 +2253,7 @@ impl ContentEq for TSModuleDeclarationName<'_> {
         match (self, other) {
             (Self::Identifier(a), Self::Identifier(b)) => a.content_eq(b),
             (Self::StringLiteral(a), Self::StringLiteral(b)) => a.content_eq(b),
-            _ => false,
-        }
-    }
-}
-
-impl ContentEq for TSModuleDeclarationBody<'_> {
-    fn content_eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::TSModuleDeclaration(a), Self::TSModuleDeclaration(b)) => a.content_eq(b),
-            (Self::TSModuleBlock(a), Self::TSModuleBlock(b)) => a.content_eq(b),
+            (Self::TSQualifiedName(a), Self::TSQualifiedName(b)) => a.content_eq(b),
             _ => false,
         }
     }

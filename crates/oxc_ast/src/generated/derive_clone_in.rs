@@ -7252,6 +7252,9 @@ impl<'new_alloc> CloneIn<'new_alloc> for TSModuleDeclarationName<'_> {
             Self::StringLiteral(it) => {
                 TSModuleDeclarationName::StringLiteral(CloneIn::clone_in(it, allocator))
             }
+            Self::TSQualifiedName(it) => {
+                TSModuleDeclarationName::TSQualifiedName(CloneIn::clone_in(it, allocator))
+            }
         }
     }
 
@@ -7263,30 +7266,7 @@ impl<'new_alloc> CloneIn<'new_alloc> for TSModuleDeclarationName<'_> {
             Self::StringLiteral(it) => TSModuleDeclarationName::StringLiteral(
                 CloneIn::clone_in_with_semantic_ids(it, allocator),
             ),
-        }
-    }
-}
-
-impl<'new_alloc> CloneIn<'new_alloc> for TSModuleDeclarationBody<'_> {
-    type Cloned = TSModuleDeclarationBody<'new_alloc>;
-
-    fn clone_in(&self, allocator: &'new_alloc Allocator) -> Self::Cloned {
-        match self {
-            Self::TSModuleDeclaration(it) => {
-                TSModuleDeclarationBody::TSModuleDeclaration(CloneIn::clone_in(it, allocator))
-            }
-            Self::TSModuleBlock(it) => {
-                TSModuleDeclarationBody::TSModuleBlock(CloneIn::clone_in(it, allocator))
-            }
-        }
-    }
-
-    fn clone_in_with_semantic_ids(&self, allocator: &'new_alloc Allocator) -> Self::Cloned {
-        match self {
-            Self::TSModuleDeclaration(it) => TSModuleDeclarationBody::TSModuleDeclaration(
-                CloneIn::clone_in_with_semantic_ids(it, allocator),
-            ),
-            Self::TSModuleBlock(it) => TSModuleDeclarationBody::TSModuleBlock(
+            Self::TSQualifiedName(it) => TSModuleDeclarationName::TSQualifiedName(
                 CloneIn::clone_in_with_semantic_ids(it, allocator),
             ),
         }

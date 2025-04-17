@@ -4990,10 +4990,10 @@ unsafe fn walk_ts_module_declaration<'a, Tr: Traverse<'a>>(
     let previous_block_scope_id = ctx.current_block_scope_id();
     ctx.set_current_block_scope_id(current_scope_id);
     if let Some(field) = &mut *((node as *mut u8).add(ancestor::OFFSET_TS_MODULE_DECLARATION_BODY)
-        as *mut Option<TSModuleDeclarationBody>)
+        as *mut Option<Box<TSModuleBlock>>)
     {
         ctx.retag_stack(AncestorType::TSModuleDeclarationBody);
-        walk_ts_module_declaration_body(traverser, field as *mut _, ctx);
+        walk_ts_module_block(traverser, (&mut **field) as *mut _, ctx);
     }
     ctx.pop_stack(pop_token);
     ctx.set_current_scope_id(previous_scope_id);
@@ -5015,25 +5015,11 @@ unsafe fn walk_ts_module_declaration_name<'a, Tr: Traverse<'a>>(
         TSModuleDeclarationName::StringLiteral(node) => {
             walk_string_literal(traverser, node as *mut _, ctx)
         }
+        TSModuleDeclarationName::TSQualifiedName(node) => {
+            walk_ts_qualified_name(traverser, node as *mut _, ctx)
+        }
     }
     traverser.exit_ts_module_declaration_name(&mut *node, ctx);
-}
-
-unsafe fn walk_ts_module_declaration_body<'a, Tr: Traverse<'a>>(
-    traverser: &mut Tr,
-    node: *mut TSModuleDeclarationBody<'a>,
-    ctx: &mut TraverseCtx<'a>,
-) {
-    traverser.enter_ts_module_declaration_body(&mut *node, ctx);
-    match &mut *node {
-        TSModuleDeclarationBody::TSModuleDeclaration(node) => {
-            walk_ts_module_declaration(traverser, (&mut **node) as *mut _, ctx)
-        }
-        TSModuleDeclarationBody::TSModuleBlock(node) => {
-            walk_ts_module_block(traverser, (&mut **node) as *mut _, ctx)
-        }
-    }
-    traverser.exit_ts_module_declaration_body(&mut *node, ctx);
 }
 
 unsafe fn walk_ts_module_block<'a, Tr: Traverse<'a>>(

@@ -2155,21 +2155,6 @@ pub trait Traverse<'a> {
     }
 
     #[inline]
-    fn enter_ts_module_declaration_body(
-        &mut self,
-        node: &mut TSModuleDeclarationBody<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-    }
-    #[inline]
-    fn exit_ts_module_declaration_body(
-        &mut self,
-        node: &mut TSModuleDeclarationBody<'a>,
-        ctx: &mut TraverseCtx<'a>,
-    ) {
-    }
-
-    #[inline]
     fn enter_ts_module_block(&mut self, node: &mut TSModuleBlock<'a>, ctx: &mut TraverseCtx<'a>) {}
     #[inline]
     fn exit_ts_module_block(&mut self, node: &mut TSModuleBlock<'a>, ctx: &mut TraverseCtx<'a>) {}

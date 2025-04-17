@@ -1953,12 +1953,6 @@ impl<'a> Format<'a> for TSModuleDeclarationName<'a> {
     }
 }
 
-impl<'a> Format<'a> for TSModuleDeclarationBody<'a> {
-    fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        self.write(f)
-    }
-}
-
 impl<'a> Format<'a> for TSModuleBlock<'a> {
     fn fmt(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
         f.state_mut().stack.push(AstKind::TSModuleBlock(hack(self)));

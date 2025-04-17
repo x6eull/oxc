@@ -1758,15 +1758,15 @@ function deserializeTSTypePredicate(pos) {
 }
 
 function deserializeTSModuleDeclaration(pos) {
-  const kind = deserializeTSModuleDeclarationKind(pos + 80);
+  const kind = deserializeTSModuleDeclarationKind(pos + 72);
   return {
     type: 'TSModuleDeclaration',
     start: deserializeU32(pos),
     end: deserializeU32(pos + 4),
     id: deserializeTSModuleDeclarationName(pos + 8),
-    body: deserializeOptionTSModuleDeclarationBody(pos + 64),
+    body: deserializeOptionBoxTSModuleBlock(pos + 64),
     kind,
-    declare: deserializeBool(pos + 81),
+    declare: deserializeBool(pos + 73),
     global: kind === 'global',
   };
 }
@@ -3856,19 +3856,10 @@ function deserializeTSModuleDeclarationName(pos) {
       return deserializeBindingIdentifier(pos + 8);
     case 1:
       return deserializeStringLiteral(pos + 8);
+    case 2:
+      return deserializeTSQualifiedName(pos + 8);
     default:
       throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationName`);
-  }
-}
-
-function deserializeTSModuleDeclarationBody(pos) {
-  switch (uint8[pos]) {
-    case 0:
-      return deserializeBoxTSModuleDeclaration(pos + 8);
-    case 1:
-      return deserializeBoxTSModuleBlock(pos + 8);
-    default:
-      throw new Error(`Unexpected discriminant ${uint8[pos]} for TSModuleDeclarationBody`);
   }
 }
 
@@ -5495,13 +5486,13 @@ function deserializeOptionTSThisParameter(pos) {
   return deserializeTSThisParameter(pos + 8);
 }
 
-function deserializeOptionTSModuleDeclarationBody(pos) {
-  if (uint8[pos] === 2) return null;
-  return deserializeTSModuleDeclarationBody(pos);
-}
-
 function deserializeBoxTSModuleBlock(pos) {
   return deserializeTSModuleBlock(uint32[pos >> 2]);
+}
+
+function deserializeOptionBoxTSModuleBlock(pos) {
+  if (uint32[pos >> 2] === 0 && uint32[(pos + 4) >> 2] === 0) return null;
+  return deserializeBoxTSModuleBlock(pos);
 }
 
 function deserializeBoxTSTypeParameter(pos) {

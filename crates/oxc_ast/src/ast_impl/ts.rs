@@ -172,7 +172,7 @@ impl fmt::Display for TSAccessibility {
 impl TSModuleDeclaration<'_> {
     /// Returns `true` if this module's body exists and has a `"use strict"` directive.
     pub fn has_use_strict_directive(&self) -> bool {
-        self.body.as_ref().is_some_and(TSModuleDeclarationBody::has_use_strict_directive)
+        self.body.as_ref().is_some_and(|body| body.has_use_strict_directive())
     }
 }
 
@@ -212,13 +212,13 @@ impl<'a> TSModuleDeclarationName<'a> {
         matches!(self, Self::StringLiteral(_))
     }
 
-    /// Get the static name of this module declaration name.
-    pub fn name(&self) -> Atom<'a> {
-        match self {
-            Self::Identifier(ident) => ident.name,
-            Self::StringLiteral(lit) => lit.value,
-        }
-    }
+    // /// Get the static name of this module declaration name.
+    // pub fn name(&self) -> Atom<'a> {
+    // match self {
+    // Self::Identifier(ident) => ident.name,
+    // Self::StringLiteral(lit) => lit.value,
+    // }
+    // }
 }
 
 impl fmt::Display for TSModuleDeclarationName<'_> {
@@ -226,32 +226,7 @@ impl fmt::Display for TSModuleDeclarationName<'_> {
         match self {
             Self::Identifier(id) => id.fmt(f),
             Self::StringLiteral(lit) => lit.fmt(f),
-        }
-    }
-}
-
-impl<'a> TSModuleDeclarationBody<'a> {
-    /// Returns `true` if this module has a `"use strict"` directive.
-    pub fn has_use_strict_directive(&self) -> bool {
-        matches!(self, Self::TSModuleBlock(block) if block.has_use_strict_directive())
-    }
-
-    /// Returns `true` if this module contains no statements.
-    pub fn is_empty(&self) -> bool {
-        match self {
-            TSModuleDeclarationBody::TSModuleDeclaration(declaration) => declaration.body.is_none(),
-            TSModuleDeclarationBody::TSModuleBlock(block) => block.body.len() == 0,
-        }
-    }
-
-    /// Get a mutable reference to `self` as a [`TSModuleBlock`]. Returns
-    /// [`None`] if the body is something other than a block.
-    pub fn as_module_block_mut(&mut self) -> Option<&mut TSModuleBlock<'a>> {
-        match self {
-            TSModuleDeclarationBody::TSModuleBlock(block) => Some(block.as_mut()),
-            TSModuleDeclarationBody::TSModuleDeclaration(decl) => {
-                decl.body.as_mut().and_then(|body| body.as_module_block_mut())
-            }
+            Self::TSQualifiedName(name) => name.fmt(f),
         }
     }
 }

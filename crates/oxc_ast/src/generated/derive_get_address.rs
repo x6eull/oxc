@@ -745,17 +745,6 @@ impl GetAddress for TSSignature<'_> {
     }
 }
 
-impl GetAddress for TSModuleDeclarationBody<'_> {
-    // `#[inline]` because compiler should boil this down to a single assembly instruction
-    #[inline]
-    fn address(&self) -> Address {
-        match self {
-            Self::TSModuleDeclaration(it) => GetAddress::address(it),
-            Self::TSModuleBlock(it) => GetAddress::address(it),
-        }
-    }
-}
-
 impl GetAddress for TSTypeQueryExprName<'_> {
     // `#[inline]` because compiler should boil this down to a single assembly instruction
     #[inline]

@@ -1901,13 +1901,8 @@ impl<'a> FormatWrite<'a> for TSModuleDeclarationName<'a> {
         match self {
             Self::Identifier(ident) => ident.fmt(f),
             Self::StringLiteral(s) => s.fmt(f),
+            Self::TSQualifiedName(s) => s.fmt(f),
         }
-    }
-}
-
-impl<'a> FormatWrite<'a> for TSModuleDeclarationBody<'a> {
-    fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        Ok(())
     }
 }
 

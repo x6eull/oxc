@@ -3057,15 +3057,7 @@ impl ESTree for TSModuleDeclarationName<'_> {
         match self {
             Self::Identifier(it) => it.serialize(serializer),
             Self::StringLiteral(it) => it.serialize(serializer),
-        }
-    }
-}
-
-impl ESTree for TSModuleDeclarationBody<'_> {
-    fn serialize<S: Serializer>(&self, serializer: S) {
-        match self {
-            Self::TSModuleDeclaration(it) => it.serialize(serializer),
-            Self::TSModuleBlock(it) => it.serialize(serializer),
+            Self::TSQualifiedName(it) => it.serialize(serializer),
         }
     }
 }

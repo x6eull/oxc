@@ -1179,7 +1179,7 @@ pub struct TSModuleDeclaration<'a> {
     /// Note that for `declare global {}`, no symbol will be created for the module name.
     pub id: TSModuleDeclarationName<'a>,
     #[scope(enter_before)]
-    pub body: Option<TSModuleDeclarationBody<'a>>,
+    pub body: Option<Box<'a, TSModuleBlock<'a>>>,
     /// The keyword used to define this module declaration.
     ///
     /// Helps discriminate between global overrides vs module declarations vs namespace
@@ -1236,14 +1236,7 @@ pub enum TSModuleDeclarationKind {
 pub enum TSModuleDeclarationName<'a> {
     Identifier(BindingIdentifier<'a>) = 0,
     StringLiteral(StringLiteral<'a>) = 1,
-}
-
-#[ast(visit)]
-#[derive(Debug)]
-#[generate_derive(CloneIn, Dummy, TakeIn, GetSpan, GetSpanMut, GetAddress, ContentEq, ESTree)]
-pub enum TSModuleDeclarationBody<'a> {
-    TSModuleDeclaration(Box<'a, TSModuleDeclaration<'a>>) = 0,
-    TSModuleBlock(Box<'a, TSModuleBlock<'a>>) = 1,
+    TSQualifiedName(TSQualifiedName<'a>) = 2,
 }
 
 // See serializer in serialize.rs

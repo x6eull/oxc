@@ -1215,23 +1215,20 @@ const _: () = {
     assert!(size_of::<TSTypePredicateName>() == 16);
     assert!(align_of::<TSTypePredicateName>() == 8);
 
-    assert!(size_of::<TSModuleDeclaration>() == 88);
+    assert!(size_of::<TSModuleDeclaration>() == 80);
     assert!(align_of::<TSModuleDeclaration>() == 8);
     assert!(offset_of!(TSModuleDeclaration, span) == 0);
     assert!(offset_of!(TSModuleDeclaration, id) == 8);
     assert!(offset_of!(TSModuleDeclaration, body) == 64);
-    assert!(offset_of!(TSModuleDeclaration, kind) == 80);
-    assert!(offset_of!(TSModuleDeclaration, declare) == 81);
-    assert!(offset_of!(TSModuleDeclaration, scope_id) == 84);
+    assert!(offset_of!(TSModuleDeclaration, kind) == 72);
+    assert!(offset_of!(TSModuleDeclaration, declare) == 73);
+    assert!(offset_of!(TSModuleDeclaration, scope_id) == 76);
 
     assert!(size_of::<TSModuleDeclarationKind>() == 1);
     assert!(align_of::<TSModuleDeclarationKind>() == 1);
 
     assert!(size_of::<TSModuleDeclarationName>() == 56);
     assert!(align_of::<TSModuleDeclarationName>() == 8);
-
-    assert!(size_of::<TSModuleDeclarationBody>() == 16);
-    assert!(align_of::<TSModuleDeclarationBody>() == 8);
 
     assert!(size_of::<TSModuleBlock>() == 72);
     assert!(align_of::<TSModuleBlock>() == 8);
@@ -2612,7 +2609,7 @@ const _: () = {
     assert!(align_of::<TSModuleDeclaration>() == 4);
     assert!(offset_of!(TSModuleDeclaration, span) == 0);
     assert!(offset_of!(TSModuleDeclaration, id) == 8);
-    assert!(offset_of!(TSModuleDeclaration, body) == 40);
+    assert!(offset_of!(TSModuleDeclaration, body) == 44);
     assert!(offset_of!(TSModuleDeclaration, kind) == 48);
     assert!(offset_of!(TSModuleDeclaration, declare) == 49);
     assert!(offset_of!(TSModuleDeclaration, scope_id) == 52);
@@ -2620,11 +2617,8 @@ const _: () = {
     assert!(size_of::<TSModuleDeclarationKind>() == 1);
     assert!(align_of::<TSModuleDeclarationKind>() == 1);
 
-    assert!(size_of::<TSModuleDeclarationName>() == 32);
+    assert!(size_of::<TSModuleDeclarationName>() == 36);
     assert!(align_of::<TSModuleDeclarationName>() == 4);
-
-    assert!(size_of::<TSModuleDeclarationBody>() == 8);
-    assert!(align_of::<TSModuleDeclarationBody>() == 4);
 
     assert!(size_of::<TSModuleBlock>() == 40);
     assert!(align_of::<TSModuleBlock>() == 4);

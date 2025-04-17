@@ -4257,14 +4257,17 @@ impl<'a> AstBuilder<'a> {
     /// * `kind`: The keyword used to define this module declaration.
     /// * `declare`
     #[inline]
-    pub fn declaration_ts_module(
+    pub fn declaration_ts_module<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
-    ) -> Declaration<'a> {
+    ) -> Declaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
         Declaration::TSModuleDeclaration(
             self.alloc_ts_module_declaration(span, id, body, kind, declare),
         )
@@ -4282,15 +4285,18 @@ impl<'a> AstBuilder<'a> {
     /// * `declare`
     /// * `scope_id`
     #[inline]
-    pub fn declaration_ts_module_with_scope_id(
+    pub fn declaration_ts_module_with_scope_id<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
         scope_id: ScopeId,
-    ) -> Declaration<'a> {
+    ) -> Declaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
         Declaration::TSModuleDeclaration(
             self.alloc_ts_module_declaration_with_scope_id(span, id, body, kind, declare, scope_id),
         )
@@ -13178,15 +13184,25 @@ impl<'a> AstBuilder<'a> {
     /// * `kind`: The keyword used to define this module declaration.
     /// * `declare`
     #[inline]
-    pub fn ts_module_declaration(
+    pub fn ts_module_declaration<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
-    ) -> TSModuleDeclaration<'a> {
-        TSModuleDeclaration { span, id, body, kind, declare, scope_id: Default::default() }
+    ) -> TSModuleDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
+        TSModuleDeclaration {
+            span,
+            id,
+            body: body.into_in(self.allocator),
+            kind,
+            declare,
+            scope_id: Default::default(),
+        }
     }
 
     /// Build a [`TSModuleDeclaration`], and store it in the memory arena.
@@ -13201,14 +13217,17 @@ impl<'a> AstBuilder<'a> {
     /// * `kind`: The keyword used to define this module declaration.
     /// * `declare`
     #[inline]
-    pub fn alloc_ts_module_declaration(
+    pub fn alloc_ts_module_declaration<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
-    ) -> Box<'a, TSModuleDeclaration<'a>> {
+    ) -> Box<'a, TSModuleDeclaration<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
         Box::new_in(self.ts_module_declaration(span, id, body, kind, declare), self.allocator)
     }
 
@@ -13225,16 +13244,26 @@ impl<'a> AstBuilder<'a> {
     /// * `declare`
     /// * `scope_id`
     #[inline]
-    pub fn ts_module_declaration_with_scope_id(
+    pub fn ts_module_declaration_with_scope_id<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
         scope_id: ScopeId,
-    ) -> TSModuleDeclaration<'a> {
-        TSModuleDeclaration { span, id, body, kind, declare, scope_id: Cell::new(Some(scope_id)) }
+    ) -> TSModuleDeclaration<'a>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
+        TSModuleDeclaration {
+            span,
+            id,
+            body: body.into_in(self.allocator),
+            kind,
+            declare,
+            scope_id: Cell::new(Some(scope_id)),
+        }
     }
 
     /// Build a [`TSModuleDeclaration`] with `scope_id`, and store it in the memory arena.
@@ -13250,15 +13279,18 @@ impl<'a> AstBuilder<'a> {
     /// * `declare`
     /// * `scope_id`
     #[inline]
-    pub fn alloc_ts_module_declaration_with_scope_id(
+    pub fn alloc_ts_module_declaration_with_scope_id<T1>(
         self,
         span: Span,
         id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
+        body: T1,
         kind: TSModuleDeclarationKind,
         declare: bool,
         scope_id: ScopeId,
-    ) -> Box<'a, TSModuleDeclaration<'a>> {
+    ) -> Box<'a, TSModuleDeclaration<'a>>
+    where
+        T1: IntoIn<'a, Option<Box<'a, TSModuleBlock<'a>>>>,
+    {
         Box::new_in(
             self.ts_module_declaration_with_scope_id(span, id, body, kind, declare, scope_id),
             self.allocator,
@@ -13348,72 +13380,20 @@ impl<'a> AstBuilder<'a> {
         ))
     }
 
-    /// Build a [`TSModuleDeclarationBody::TSModuleDeclaration`].
-    ///
-    /// This node contains a [`TSModuleDeclaration`] that will be stored in the memory arena.
+    /// Build a [`TSModuleDeclarationName::TSQualifiedName`].
     ///
     /// ## Parameters
     /// * `span`: The [`Span`] covering this node
-    /// * `id`: The name of the module/namespace being declared.
-    /// * `body`
-    /// * `kind`: The keyword used to define this module declaration.
-    /// * `declare`
+    /// * `left`
+    /// * `right`
     #[inline]
-    pub fn ts_module_declaration_body_module_declaration(
+    pub fn ts_module_declaration_name_qualified_name(
         self,
         span: Span,
-        id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
-        kind: TSModuleDeclarationKind,
-        declare: bool,
-    ) -> TSModuleDeclarationBody<'a> {
-        TSModuleDeclarationBody::TSModuleDeclaration(
-            self.alloc_ts_module_declaration(span, id, body, kind, declare),
-        )
-    }
-
-    /// Build a [`TSModuleDeclarationBody::TSModuleDeclaration`] with `scope_id`.
-    ///
-    /// This node contains a [`TSModuleDeclaration`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `id`: The name of the module/namespace being declared.
-    /// * `body`
-    /// * `kind`: The keyword used to define this module declaration.
-    /// * `declare`
-    /// * `scope_id`
-    #[inline]
-    pub fn ts_module_declaration_body_module_declaration_with_scope_id(
-        self,
-        span: Span,
-        id: TSModuleDeclarationName<'a>,
-        body: Option<TSModuleDeclarationBody<'a>>,
-        kind: TSModuleDeclarationKind,
-        declare: bool,
-        scope_id: ScopeId,
-    ) -> TSModuleDeclarationBody<'a> {
-        TSModuleDeclarationBody::TSModuleDeclaration(
-            self.alloc_ts_module_declaration_with_scope_id(span, id, body, kind, declare, scope_id),
-        )
-    }
-
-    /// Build a [`TSModuleDeclarationBody::TSModuleBlock`].
-    ///
-    /// This node contains a [`TSModuleBlock`] that will be stored in the memory arena.
-    ///
-    /// ## Parameters
-    /// * `span`: The [`Span`] covering this node
-    /// * `directives`
-    /// * `body`
-    #[inline]
-    pub fn ts_module_declaration_body_module_block(
-        self,
-        span: Span,
-        directives: Vec<'a, Directive<'a>>,
-        body: Vec<'a, Statement<'a>>,
-    ) -> TSModuleDeclarationBody<'a> {
-        TSModuleDeclarationBody::TSModuleBlock(self.alloc_ts_module_block(span, directives, body))
+        left: TSTypeName<'a>,
+        right: IdentifierName<'a>,
+    ) -> TSModuleDeclarationName<'a> {
+        TSModuleDeclarationName::TSQualifiedName(self.ts_qualified_name(span, left, right))
     }
 
     /// Build a [`TSModuleBlock`].

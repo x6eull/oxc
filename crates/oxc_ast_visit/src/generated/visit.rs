@@ -1059,11 +1059,6 @@ pub trait Visit<'a>: Sized {
     }
 
     #[inline]
-    fn visit_ts_module_declaration_body(&mut self, it: &TSModuleDeclarationBody<'a>) {
-        walk_ts_module_declaration_body(self, it);
-    }
-
-    #[inline]
     fn visit_ts_module_block(&mut self, it: &TSModuleBlock<'a>) {
         walk_ts_module_block(self, it);
     }
@@ -3805,7 +3800,7 @@ pub mod walk {
             &it.scope_id,
         );
         if let Some(body) = &it.body {
-            visitor.visit_ts_module_declaration_body(body);
+            visitor.visit_ts_module_block(body);
         }
         visitor.leave_scope();
         visitor.leave_node(kind);
@@ -3820,20 +3815,7 @@ pub mod walk {
         match it {
             TSModuleDeclarationName::Identifier(it) => visitor.visit_binding_identifier(it),
             TSModuleDeclarationName::StringLiteral(it) => visitor.visit_string_literal(it),
-        }
-    }
-
-    #[inline]
-    pub fn walk_ts_module_declaration_body<'a, V: Visit<'a>>(
-        visitor: &mut V,
-        it: &TSModuleDeclarationBody<'a>,
-    ) {
-        // No `AstKind` for this type
-        match it {
-            TSModuleDeclarationBody::TSModuleDeclaration(it) => {
-                visitor.visit_ts_module_declaration(it)
-            }
-            TSModuleDeclarationBody::TSModuleBlock(it) => visitor.visit_ts_module_block(it),
+            TSModuleDeclarationName::TSQualifiedName(it) => visitor.visit_ts_qualified_name(it),
         }
     }
 
