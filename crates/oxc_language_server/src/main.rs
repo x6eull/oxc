@@ -4,22 +4,15 @@ use code_actions::{
 };
 use commands::LSP_COMMANDS;
 use futures::future::join_all;
-use globset::Glob;
-use ignore::gitignore::Gitignore;
-use linter::{config_walker::ConfigWalker, isolated_lint_handler::IsolatedLintHandlerOptions};
 use log::{debug, error, info};
-use oxc_linter::{ConfigStore, ConfigStoreBuilder, FixKind, LintOptions, Linter, Oxlintrc};
+use oxc_linter::{ConfigStoreBuilder, FixKind, Oxlintrc};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use serde::{Deserialize, Serialize};
-use std::{
-    fmt::Debug,
-    path::{Path, PathBuf},
-    str::FromStr,
-};
-use tokio::sync::{Mutex, OnceCell, RwLock, SetError};
+use std::{fmt::Debug, str::FromStr};
+use tokio::sync::Mutex;
 use tower_lsp_server::{
     Client, LanguageServer, LspService, Server, UriExt,
-    jsonrpc::{Error, ErrorCode, Result},
+    jsonrpc::{Error, Result},
     lsp_types::{
         CodeActionOrCommand, CodeActionParams, CodeActionResponse, ConfigurationItem, Diagnostic,
         DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
@@ -28,15 +21,15 @@ use tower_lsp_server::{
         InitializedParams, Range, ServerInfo, Uri,
     },
 };
+use worker::BackendWorker;
 
 use crate::capabilities::Capabilities;
-use crate::linter::error_with_position::DiagnosticReport;
-use crate::linter::server_linter::ServerLinter;
 
 mod capabilities;
 mod code_actions;
 mod commands;
 mod linter;
+mod worker;
 
 type ConcurrentHashMap<K, V> = papaya::HashMap<K, V, FxBuildHasher>;
 
@@ -44,16 +37,12 @@ const OXC_CONFIG_FILE: &str = ".oxlintrc.json";
 
 struct Backend {
     client: Client,
-    root_uri: OnceCell<Option<Uri>>,
-    server_linter: RwLock<ServerLinter>,
-    diagnostics_report_map: ConcurrentHashMap<String, Vec<DiagnosticReport>>,
-    options: Mutex<Options>,
-    gitignore_glob: Mutex<Vec<Gitignore>>,
-    nested_configs: ConcurrentHashMap<PathBuf, ConfigStore>,
+    workspace_workers: Mutex<Vec<BackendWorker>>,
 }
+
 #[derive(Debug, Serialize, Deserialize, Default, PartialEq, PartialOrd, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
-enum Run {
+pub enum Run {
     OnSave,
     #[default]
     OnType,
@@ -90,21 +79,26 @@ impl Options {
 impl LanguageServer for Backend {
     #[expect(deprecated)] // TODO: FIXME
     async fn initialize(&self, params: InitializeParams) -> Result<InitializeResult> {
-        self.init(params.root_uri)?;
         let options = params.initialization_options.and_then(|mut value| {
             let settings = value.get_mut("settings")?.take();
             serde_json::from_value::<Options>(settings).ok()
         });
 
+        // ToDo: add support for multiple workspace folders
+        // maybe fallback when the client does not support it
+        let root_worker = BackendWorker::new(
+            params.root_uri.clone().unwrap(),
+            options.clone().unwrap_or_default(),
+        )
+        .await;
+
+        *self.workspace_workers.lock().await = vec![root_worker];
+
         if let Some(value) = options {
             info!("initialize: {value:?}");
             info!("language server version: {:?}", env!("CARGO_PKG_VERSION"));
-            *self.options.lock().await = value;
         }
 
-        self.init_nested_configs().await;
-        let oxlintrc = self.init_linter_config().await;
-        self.init_ignore_glob(oxlintrc).await;
         Ok(InitializeResult {
             server_info: Some(ServerInfo { name: "oxc".into(), version: None }),
             offset_encoding: None,
@@ -113,6 +107,8 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_configuration(&self, params: DidChangeConfigurationParams) {
+        // ToDo: check which workers needs which changes with self.client.configuration
+        // needs client capability
         let changed_options =
             if let Ok(options) = serde_json::from_value::<Options>(params.settings) {
                 options
@@ -159,6 +155,7 @@ impl LanguageServer for Backend {
     }
 
     async fn did_change_watched_files(&self, params: DidChangeWatchedFilesParams) {
+        // ToDo: check which workers needs which changes
         debug!("watched file did change");
         if self.options.lock().await.use_nested_configs() {
             let nested_configs = self.nested_configs.pin();
@@ -215,54 +212,66 @@ impl LanguageServer for Backend {
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
         debug!("oxc server did save");
-        // drop as fast as possible
-        let run_level = { self.options.lock().await.run };
-        if run_level != Run::OnSave {
+        let uri = &params.text_document.uri;
+        let worker = self.get_responsible_worker(uri).await;
+        if !worker.should_lint_on_run_type(Run::OnSave).await {
             return;
         }
-        let uri = params.text_document.uri;
-        if self.is_ignored(&uri).await {
-            return;
+        if let Some(diagnostics) = worker.lint_file(uri, None).await {
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    diagnostics.clone().into_iter().map(|d| d.diagnostic).collect(),
+                    None,
+                )
+                .await;
         }
-        self.handle_file_update(uri, None, None).await;
     }
 
     /// When the document changed, it may not be written to disk, so we should
     /// get the file context from the language client
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
-        let run_level = { self.options.lock().await.run };
-        if run_level != Run::OnType {
-            return;
-        }
-
         let uri = &params.text_document.uri;
-        if self.is_ignored(uri).await {
+        let worker = self.get_responsible_worker(uri).await;
+        if !worker.should_lint_on_run_type(Run::OnType).await {
             return;
         }
         let content = params.content_changes.first().map(|c| c.text.clone());
-        self.handle_file_update(
-            params.text_document.uri,
-            content,
-            Some(params.text_document.version),
-        )
-        .await;
+        if let Some(diagnostics) = worker.lint_file(uri, content).await {
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    diagnostics.clone().into_iter().map(|d| d.diagnostic).collect(),
+                    Some(params.text_document.version),
+                )
+                .await;
+        }
     }
 
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
-        if self.is_ignored(&params.text_document.uri).await {
-            return;
+        let uri = &params.text_document.uri;
+        let worker = self.get_responsible_worker(uri).await;
+        let content = params.text_document.text;
+        if let Some(diagnostics) = worker.lint_file(uri, Some(content)).await {
+            self.client
+                .publish_diagnostics(
+                    uri.clone(),
+                    diagnostics.clone().into_iter().map(|d| d.diagnostic).collect(),
+                    Some(params.text_document.version),
+                )
+                .await;
         }
-        self.handle_file_update(params.text_document.uri, None, Some(params.text_document.version))
-            .await;
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
-        let uri = params.text_document.uri.to_string();
-        self.diagnostics_report_map.pin().remove(&uri);
+        let worker = self.get_responsible_worker(&params.text_document.uri).await;
+        worker.remove_diagnostics(&params.text_document.uri);
     }
 
     async fn code_action(&self, params: CodeActionParams) -> Result<Option<CodeActionResponse>> {
         let uri = &params.text_document.uri;
+        let worker = self.get_responsible_worker(&params.text_document.uri).await;
+
         let report_map = self.diagnostics_report_map.pin();
         let Some(value) = report_map.get(&uri.to_string()) else {
             return Ok(None);
@@ -316,91 +325,27 @@ impl LanguageServer for Backend {
 }
 
 impl Backend {
-    fn init(&self, root_uri: Option<Uri>) -> Result<()> {
-        self.root_uri.set(root_uri).map_err(|err| {
-            let message = match err {
-                SetError::AlreadyInitializedError(_) => "root uri already initialized".into(),
-                SetError::InitializingError(_) => "initializing error".into(),
-            };
-
-            Error { code: ErrorCode::ParseError, message, data: None }
-        })?;
-
-        Ok(())
+    #[inline(always)]
+    pub async fn get_responsible_worker<'a>(&'a self, uri: &Uri) -> &'a BackendWorker {
+        let workers = self.workspace_workers.lock().await;
+        workers
+            .iter()
+            .find(|worker| worker.is_responsible_for_uri(uri))
+            .expect("No responsible worker found")
     }
 
-    async fn init_ignore_glob(&self, oxlintrc: Option<Oxlintrc>) {
-        let uri = self
-            .root_uri
-            .get()
-            .expect("The root uri should be initialized already")
-            .as_ref()
-            .expect("should get uri");
-        let mut builder = globset::GlobSetBuilder::new();
-        // Collecting all ignore files
-        builder.add(Glob::new("**/.eslintignore").unwrap());
-        builder.add(Glob::new("**/.gitignore").unwrap());
-
-        let ignore_file_glob_set = builder.build().unwrap();
-
-        let walk = ignore::WalkBuilder::new(uri.to_file_path().unwrap())
-            .ignore(true)
-            .hidden(false)
-            .git_global(false)
-            .build()
-            .flatten();
-
-        let mut gitignore_globs = self.gitignore_glob.lock().await;
-        for entry in walk {
-            let ignore_file_path = entry.path();
-            if !ignore_file_glob_set.is_match(ignore_file_path) {
-                continue;
-            }
-
-            if let Some(ignore_file_dir) = ignore_file_path.parent() {
-                let mut builder = ignore::gitignore::GitignoreBuilder::new(ignore_file_dir);
-                builder.add(ignore_file_path);
-                if let Ok(gitignore) = builder.build() {
-                    gitignore_globs.push(gitignore);
-                }
-            }
-        }
-
-        if let Some(oxlintrc) = oxlintrc {
-            if !oxlintrc.ignore_patterns.is_empty() {
-                let mut builder =
-                    ignore::gitignore::GitignoreBuilder::new(oxlintrc.path.parent().unwrap());
-                for entry in &oxlintrc.ignore_patterns {
-                    builder.add_line(None, entry).expect("Failed to add ignore line");
-                }
-                gitignore_globs.push(builder.build().unwrap());
-            }
-        }
-    }
-
+    // clears all diagnostics for workspace folders
     async fn clear_all_diagnostics(&self) {
-        let cleared_diagnostics = self
-            .diagnostics_report_map
-            .pin()
-            .keys()
-            .map(|uri| (uri.clone(), vec![]))
-            .collect::<Vec<_>>();
+        let mut cleared_diagnostics = vec![];
+        for worker in self.workspace_workers.lock().await.iter() {
+            cleared_diagnostics.extend(worker.get_clear_diagnostics());
+        }
         self.publish_all_diagnostics(&cleared_diagnostics).await;
     }
 
-    #[expect(clippy::ptr_arg)]
     async fn publish_all_diagnostics(&self, result: &Vec<(String, Vec<Diagnostic>)>) {
         join_all(result.iter().map(|(path, diagnostics)| {
             self.client.publish_diagnostics(Uri::from_str(path).unwrap(), diagnostics.clone(), None)
-        }))
-        .await;
-    }
-
-    async fn revalidate_open_files(&self) {
-        join_all(self.diagnostics_report_map.pin_owned().keys().map(|key| {
-            let url = Uri::from_str(key).expect("should convert to path");
-
-            self.handle_file_update(url, None, None)
         }))
         .await;
     }
@@ -409,143 +354,6 @@ impl Backend {
         old_options.config_path != new_options.config_path
             || old_options.use_nested_configs() != new_options.use_nested_configs()
             || old_options.fix_kind() != new_options.fix_kind()
-    }
-
-    /// Searches inside root_uri recursively for the default oxlint config files
-    /// and insert them inside the nested configuration
-    async fn init_nested_configs(&self) {
-        let Some(Some(uri)) = self.root_uri.get() else {
-            return;
-        };
-        let Some(root_path) = uri.to_file_path() else {
-            return;
-        };
-
-        // nested config is disabled, no need to search for configs
-        if !self.options.lock().await.use_nested_configs() {
-            return;
-        }
-
-        let paths = ConfigWalker::new(&root_path).paths();
-        let nested_configs = self.nested_configs.pin();
-
-        for path in paths {
-            let file_path = Path::new(&path);
-            let Some(dir_path) = file_path.parent() else {
-                continue;
-            };
-
-            let oxlintrc = Oxlintrc::from_file(file_path).expect("Failed to parse config file");
-            let config_store_builder = ConfigStoreBuilder::from_oxlintrc(false, oxlintrc)
-                .expect("Failed to create config store builder");
-            let config_store = config_store_builder.build().expect("Failed to build config store");
-            nested_configs.insert(dir_path.to_path_buf(), config_store);
-        }
-    }
-
-    async fn init_linter_config(&self) -> Option<Oxlintrc> {
-        let Some(Some(uri)) = self.root_uri.get() else {
-            return None;
-        };
-        let root_path = uri.to_file_path()?;
-        let relative_config_path = self.options.lock().await.config_path.clone();
-        let oxlintrc = if relative_config_path.is_some() {
-            let config = root_path.join(relative_config_path.unwrap());
-            if config.try_exists().expect("Could not get fs metadata for config") {
-                if let Ok(oxlintrc) = Oxlintrc::from_file(&config) {
-                    oxlintrc
-                } else {
-                    error!("Failed to initialize oxlintrc config: {}", config.to_string_lossy());
-                    Oxlintrc::default()
-                }
-            } else {
-                error!(
-                    "Config file not found: {}, fallback to default config",
-                    config.to_string_lossy()
-                );
-                Oxlintrc::default()
-            }
-        } else {
-            Oxlintrc::default()
-        };
-
-        // clone because we are returning it for ignore builder
-        let config_builder =
-            ConfigStoreBuilder::from_oxlintrc(false, oxlintrc.clone()).unwrap_or_default();
-
-        // TODO(refactor): pull this into a shared function, because in oxlint we have the same functionality.
-        let use_nested_config = self.options.lock().await.use_nested_configs();
-
-        let use_cross_module = if use_nested_config {
-            self.nested_configs.pin().values().any(|config| config.plugins().has_import())
-        } else {
-            config_builder.plugins().has_import()
-        };
-
-        let config_store = config_builder.build().expect("Failed to build config store");
-
-        let lint_options =
-            LintOptions { fix: self.options.lock().await.fix_kind(), ..Default::default() };
-
-        let linter = if use_nested_config {
-            let nested_configs = self.nested_configs.pin();
-            let nested_configs_copy: FxHashMap<PathBuf, ConfigStore> = nested_configs
-                .iter()
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect::<FxHashMap<_, _>>();
-
-            Linter::new_with_nested_configs(lint_options, config_store, nested_configs_copy)
-        } else {
-            Linter::new(lint_options, config_store)
-        };
-
-        *self.server_linter.write().await = ServerLinter::new_with_linter(
-            linter,
-            IsolatedLintHandlerOptions { use_cross_module, root_path: root_path.to_path_buf() },
-        );
-
-        Some(oxlintrc)
-    }
-
-    async fn handle_file_update(&self, uri: Uri, content: Option<String>, version: Option<i32>) {
-        if let Some(Some(_root_uri)) = self.root_uri.get() {
-            let diagnostics = self.server_linter.read().await.run_single(&uri, content);
-            if let Some(diagnostics) = diagnostics {
-                self.client
-                    .publish_diagnostics(
-                        uri.clone(),
-                        diagnostics.clone().into_iter().map(|d| d.diagnostic).collect(),
-                        version,
-                    )
-                    .await;
-
-                self.diagnostics_report_map.pin().insert(uri.to_string(), diagnostics);
-            }
-        }
-    }
-
-    async fn is_ignored(&self, uri: &Uri) -> bool {
-        let Some(Some(root_uri)) = self.root_uri.get() else {
-            return false;
-        };
-
-        // The file is not under current workspace
-        if !uri.to_file_path().unwrap().starts_with(root_uri.to_file_path().unwrap()) {
-            return false;
-        }
-        let gitignore_globs = &(*self.gitignore_glob.lock().await);
-        for gitignore in gitignore_globs {
-            if let Some(uri_path) = uri.to_file_path() {
-                if !uri_path.starts_with(gitignore.path()) {
-                    continue;
-                }
-                if gitignore.matched_path_or_any_parents(&uri_path, uri_path.is_dir()).is_ignore() {
-                    debug!("ignored: {uri:?}");
-                    return true;
-                }
-            }
-        }
-        false
     }
 }
 
@@ -556,22 +364,9 @@ async fn main() {
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
 
-    let server_linter = ServerLinter::new(IsolatedLintHandlerOptions {
-        use_cross_module: false,
-        root_path: PathBuf::new(),
-    });
-    let diagnostics_report_map = ConcurrentHashMap::default();
-
-    let (service, socket) = LspService::build(|client| Backend {
-        client,
-        root_uri: OnceCell::new(),
-        server_linter: RwLock::new(server_linter),
-        diagnostics_report_map,
-        options: Mutex::new(Options::default()),
-        gitignore_glob: Mutex::new(vec![]),
-        nested_configs: ConcurrentHashMap::default(),
-    })
-    .finish();
+    let (service, socket) =
+        LspService::build(|client| Backend { client, workspace_workers: Mutex::new(vec![]) })
+            .finish();
 
     Server::new(stdin, stdout, socket).serve(service).await;
 }

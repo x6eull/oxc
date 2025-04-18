@@ -3,6 +3,9 @@
     "correctness": "error",
     "perf": "error"
   },
+  "rules": {
+    "no-console": "error"
+  },
   "ignorePatterns": [
     "**/fixtures"
   ]
